@@ -51,6 +51,15 @@ class ProbeExperimentTests(unittest.TestCase):
             self.assertTrue(pdf.startswith(b"%PDF-1.4"))
             self.assertIn(b"/Count 2", pdf)
             self.assertEqual(pdf.count(b"/Type /Page "), 2)
+            repository_url = "https://github.com/kimnaeun0227/algorithms-hw2"
+            repository_url_hex = repository_url.encode("utf-16-be").hex().upper().encode(
+                "ascii"
+            )
+            title_hex = "해시 테이블 탐색 비용 비교".encode("utf-16-be").hex().upper().encode(
+                "ascii"
+            )
+            self.assertLess(pdf.index(repository_url_hex), pdf.index(title_hex))
+            self.assertIn("에이전트 오류".encode("utf-16-be").hex().upper().encode("ascii"), pdf)
 
     def test_chaining_experiment_covers_requested_loads_and_writes_csv_svg(self):
         results = build_chaining_results(capacity=40)

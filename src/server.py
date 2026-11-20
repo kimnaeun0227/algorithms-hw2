@@ -8,6 +8,14 @@ from urllib.parse import parse_qsl, unquote, urlsplit
 from src.shortener import Shortener
 
 
+_SAMPLE_URLS = (
+    "https://collision.example/address/61",
+    "https://collision.example/address/100",
+    "https://collision.example/address/221",
+)
+_TABLE_CAPACITY = 8
+
+
 def _render_node_contents(key, code):
     escaped_code = escape(code, quote=True)
     short_path = f"/{escaped_code}"
@@ -109,9 +117,12 @@ def _render_table(shortener):
 def make_handler(shortener=None):
     if shortener is None:
         shared_shorteners = [
-            ("chaining", Shortener()),
-            ("linear", Shortener(table_type="linear")),
+            ("chaining", Shortener(capacity=_TABLE_CAPACITY)),
+            ("linear", Shortener(table_type="linear", capacity=_TABLE_CAPACITY)),
         ]
+        for _, selected in shared_shorteners:
+            for url in _SAMPLE_URLS:
+                selected.shorten(url)
     else:
         shared_shorteners = [(shortener.table_type, shortener)]
 

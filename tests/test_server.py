@@ -40,8 +40,8 @@ class ServerTests(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         self.assertEqual(status, 200)
-        self.assertIn("<code>1</code>", body)
-        self.assertIn("/1", body)
+        self.assertIn("<code>4</code>", body)
+        self.assertIn("/4", body)
 
     def test_short_code_redirects_and_unknown_code_is_404(self):
         self.request(
@@ -50,7 +50,7 @@ class ServerTests(unittest.TestCase):
             body=urlencode({"url": "https://example.com/a"}),
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        status, headers, _ = self.request("GET", "/1")
+        status, headers, _ = self.request("GET", "/4")
         self.assertEqual(status, 302)
         self.assertIn(("Location", "https://example.com/a"), headers)
 
@@ -78,7 +78,29 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("연결 리스트", body)
         self.assertIn("비교 1회", body)
-        self.assertIn("mod 1024", body)
+        self.assertIn("mod 8", body)
+
+    def test_default_tables_show_colliding_sample_addresses(self):
+        sample_urls = (
+            "https://collision.example/address/61",
+            "https://collision.example/address/100",
+            "https://collision.example/address/221",
+        )
+
+        status, _, chaining_body = self.request("GET", "/table")
+        self.assertEqual(status, 200)
+        for url in sample_urls:
+            self.assertIn(url, chaining_body)
+        self.assertIn("<td>6</td>", chaining_body)
+        self.assertIn("비교 3회", chaining_body)
+        chaining_rows = chaining_body.split("</thead>", 1)[1].split("</tbody>", 1)[0]
+        self.assertEqual(chaining_rows.count("<tr>"), 8)
+
+        status, _, linear_body = self.request("GET", "/table?table=linear")
+        self.assertEqual(status, 200)
+        for url in sample_urls:
+            self.assertIn(url, linear_body)
+        self.assertIn("방문 슬롯 6 → 7 → 0", linear_body)
 
     def test_table_renders_linked_url_nodes_with_expandable_hash_steps(self):
         server = create_server(
@@ -134,7 +156,7 @@ class ServerTests(unittest.TestCase):
         self.assertIn("초기 슬롯은 Horner", body)
         self.assertIn("방문 슬롯", body)
         self.assertIn("시작 슬롯", body)
-        self.assertIn("mod 1024", body)
+        self.assertIn("mod 8", body)
 
     def test_unknown_table_selection_is_rejected(self):
         status, _, _ = self.request("GET", "/table?table=unknown")
