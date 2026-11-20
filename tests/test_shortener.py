@@ -19,24 +19,28 @@ class ShortenerTests(unittest.TestCase):
                 self.assertEqual(shortener.expand("2"), second_url)
 
     def test_invalid_urls_are_rejected(self):
-        shortener = Shortener()
-        for url in (
-            "/relative/path",
-            "ftp://example.com",
-            "https:///missing-host",
-            "https://example.com/has space",
-            "",
-        ):
-            with self.subTest(url=url):
-                with self.assertRaises(ValueError):
-                    shortener.shorten(url)
+        for table_type in ("chaining", "linear"):
+            shortener = Shortener(table_type=table_type)
+            for url in (
+                "/relative/path",
+                "ftp://example.com",
+                "https:///missing-host",
+                "https://example.com:invalid-port",
+                "https://example.com/has space",
+                "",
+            ):
+                with self.subTest(table_type=table_type, url=url):
+                    with self.assertRaises(ValueError):
+                        shortener.shorten(url)
 
     def test_invalid_types_and_unknown_codes_are_rejected(self):
-        shortener = Shortener()
-        with self.assertRaises(TypeError):
-            shortener.shorten(None)
-        with self.assertRaises(KeyError):
-            shortener.expand("unknown")
+        for table_type in ("chaining", "linear"):
+            with self.subTest(table_type=table_type):
+                shortener = Shortener(table_type=table_type)
+                with self.assertRaises(TypeError):
+                    shortener.shorten(None)
+                with self.assertRaises(KeyError):
+                    shortener.expand("unknown")
 
     def test_unsupported_table_type_is_rejected(self):
         with self.assertRaises(ValueError):
