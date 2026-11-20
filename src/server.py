@@ -8,6 +8,29 @@ from urllib.parse import parse_qsl, unquote, urlsplit
 from src.shortener import Shortener
 
 
+def _render_node_contents(key, code):
+    escaped_code = escape(code, quote=True)
+    short_path = f"/{escaped_code}"
+    return (
+        f'<code>URL: {escape(key)}</code> → '
+        f'<code>코드: {escape(code)}</code> → '
+        f'<a href="{short_path}">단축 링크: {short_path}</a>'
+    )
+
+
+def _render_hash_calculations(table, key):
+    steps = table.hash_steps(key)
+    calculations = []
+    previous = 0
+    for _, codepoint, current in steps:
+        calculations.append(
+            f"<li>(31×{previous} + {codepoint}) mod "
+            f"{table.capacity} = {current}</li>"
+        )
+        previous = current
+    return steps, "".join(calculations)
+
+
 def _render_table(shortener):
     table = shortener.url_table
     linear = shortener.table_type == "linear"
@@ -20,9 +43,15 @@ def _render_table(shortener):
         f"<title>{title}</title><h1>{title}</h1>",
         f"<p>{location_label} Horner 식 h = (31h + ord(c)) mod "
         f"{table.capacity}으로 계산합니다.</p>",
-        f"<table border=\"1\"><thead><tr><th>{column}</th><th>{contents_heading}</th>"
-        "<th>해시 계산 및 탐색</th></tr></thead><tbody>",
+        "<style>.chain{display:flex;align-items:flex-start;flex-wrap:wrap;gap:.5rem}"
+        ".chain-node{max-width:32rem;overflow-wrap:anywhere}"
+        ".chain-arrow{align-self:center}</style>",
+        f"<table border=\"1\"><thead><tr><th>{column}</th><th>{contents_heading}</th>",
     ]
+    if linear:
+        parts.append("<th>해시 계산 및 탐색</th>")
+    parts.append("</tr></thead><tbody>")
+
     for index, slot in enumerate(table.slots()):
         if linear:
             if slot is None:
@@ -33,49 +62,41 @@ def _render_table(shortener):
                 details = ""
             else:
                 key, value = slot
-                steps = table.hash_steps(key)
+                steps, calculations = _render_hash_calculations(table, key)
                 initial = steps[-1][2] if steps else 0
                 path = table.probe_path(key)
-                calculations = []
-                previous = 0
-                for _, codepoint, current in steps:
-                    calculations.append(
-                        f"(31×{previous} + {codepoint}) mod {table.capacity} = {current}"
-                    )
-                    previous = current
                 details = (
-                    f"<li><code>{escape(key)}</code> 시작 슬롯 {initial}; "
+                    f"<details><summary>초기 슬롯 {initial} (시작 슬롯); "
                     f"방문 슬롯 {' → '.join(str(cell) for cell in path)}; "
-                    f"{len(path)}칸 확인; {'; '.join(calculations)}</li>"
+                    f"{len(path)}칸 확인</summary><ol>{calculations}</ol></details>"
                 )
-                contents = f"{escape(key)} → {escape(value)}"
+                contents = _render_node_contents(key, value)
             parts.append(
-                f"<tr><td>{index}</td><td>{contents}</td><td><ul>{details}</ul></td></tr>"
+                f"<tr><td>{index}</td><td>{contents}</td><td>{details}</td></tr>"
             )
             continue
 
-        chain = " → ".join(
-            f"{escape(key)} → {escape(value)}" for key, value in slot
-        )
-        if not chain:
-            chain = "(비어 있음)"
-        details = []
+        nodes = []
         for key, value in slot:
-            previous = 0
-            calculations = []
-            for _, codepoint, current in table.hash_steps(key):
-                calculations.append(
-                    f"(31×{previous} + {codepoint}) mod {table.capacity} = {current}"
-                )
-                previous = current
+            steps, calculations = _render_hash_calculations(table, key)
+            bucket = steps[-1][2] if steps else 0
             _, _, probes = table.search(key)
-            details.append(
-                f"<li><code>{escape(key)}</code> → <code>{escape(value)}</code>; "
-                f"비교 {probes}회; {'; '.join(calculations)}</li>"
+            nodes.append(
+                '<div class="chain-node">'
+                f"<div>{_render_node_contents(key, value)}</div>"
+                f"<details><summary>Horner 계산: 버킷 {bucket}; "
+                f"비교 {probes}회</summary><ol>{calculations}</ol></details>"
+                "</div>"
+            )
+        chain = "(비어 있음)"
+        if nodes:
+            chain = (
+                '<div class="chain">'
+                + '<span class="chain-arrow" aria-hidden="true">→</span>'.join(nodes)
+                + "</div>"
             )
         parts.append(
-            f"<tr><td>{index}</td><td>{chain}</td><td><ul>{''.join(details)}</ul>"
-            "</td></tr>"
+            f"<tr><td>{index}</td><td>{chain}</td></tr>"
         )
     parts.extend(
         [
