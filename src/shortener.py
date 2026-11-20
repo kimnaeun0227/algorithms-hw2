@@ -15,6 +15,10 @@ class Shortener:
         self._codes = HashTable(capacity)
         self._next_id = 1
 
+    @property
+    def url_table(self):
+        return self._urls
+
     @staticmethod
     def _validate_url(url):
         if not isinstance(url, str):
