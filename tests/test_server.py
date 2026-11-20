@@ -4,6 +4,7 @@ import unittest
 from urllib.parse import urlencode
 
 from src.server import create_server
+from src.shortener import Shortener
 
 
 class ServerTests(unittest.TestCase):
@@ -78,6 +79,46 @@ class ServerTests(unittest.TestCase):
         self.assertIn("연결 리스트", body)
         self.assertIn("비교 1회", body)
         self.assertIn("mod 1024", body)
+
+    def test_table_renders_linked_url_nodes_with_expandable_hash_steps(self):
+        server = create_server(
+            host="127.0.0.1", port=0, shortener=Shortener(capacity=1)
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        connection = http.client.HTTPConnection(
+            "127.0.0.1", server.server_address[1], timeout=5
+        )
+        try:
+            for url in ("https://example.com/a", "https://example.com/b"):
+                connection.request(
+                    "POST",
+                    "/shorten",
+                    body=urlencode({"url": url}),
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                response.read()
+
+            connection.request("GET", "/table")
+            response = connection.getresponse()
+            body = response.read().decode("utf-8")
+
+            self.assertEqual(response.status, 200)
+            self.assertIn("https://example.com/a", body)
+            self.assertIn("https://example.com/b", body)
+            self.assertIn('href="/1"', body)
+            self.assertIn('href="/2"', body)
+            self.assertIn("<details>", body)
+            self.assertIn("Horner", body)
+            self.assertIn("→", body)
+            self.assertIn("비교 2회", body)
+        finally:
+            connection.close()
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
 
     def test_linear_table_shows_visited_slots_and_hash_steps(self):
         self.request(
