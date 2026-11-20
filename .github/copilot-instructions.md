@@ -1,31 +1,33 @@
-# Copilot instructions
+# 이 저장소에서 일하는 에이전트에게
 
-## Project requirements
+## 작업 규칙
 
-- Read `SPEC.md` before implementing behavior; use `PLAN.md` as the implementation order.
-- Use only the Python standard library.
-- In `src/`, do not use Python's built-in `dict`, `set`, or `hash()` for the hash-table
-  implementation or URL storage. Use the project's hash-table classes instead.
-- Add or update focused tests before implementing a behavior change. Preserve the existing
-  tests unless the user explicitly asks to change them.
-- Keep the public behavior and diagnostics consistent across the chaining and linear
-  probing implementations.
-- Report validation failures explicitly. Do not silently return success-shaped fallbacks.
+- 코드를 쓰거나 고치기 전에 `SPEC.md`를 읽고, 구현 순서는 `PLAN.md`를 따른다.
+- 외부 라이브러리는 추가하지 않는다. `src/`에서는 `dict`, `set`, 내장 `hash()`를
+  사용하지 않는다. 해시 저장과 탐색은 직접 구현한 테이블을 사용한다.
+- 기능 변경은 관련 테스트를 먼저 작성하거나 확인한 뒤 구현한다. 코드 변경 후에는
+  `make test`를 실행하고 실제 통과·실패 결과를 사용자에게 알린다.
+- 테스트가 실패하면 구현 코드를 고친다. 테스트를 삭제·완화·수정해 실패를 감추지
+  않는다. 사용자가 테스트 변경을 명시적으로 요청한 경우만 예외로 한다.
+- 체이닝과 선형 탐지의 공개 동작 및 진단 정보는 일관되게 유지한다.
+- 오류는 조용히 삼키지 말고 명시적으로 처리한다.
 
 ## Git Flow
 
-- `main` contains release-ready work. Integrate completed steps into `develop`.
-- Start each numbered issue from the latest `develop` in
-  `feature/<issue-number>-<short-name>`.
-- Keep one issue/step per feature branch and post progress and completion details on its
-  matching GitHub issue.
-- Commit with `Step N: 한 일 (#이슈번호)`, push the feature branch, then merge it into
-  `develop` and push `develop`. Close the issue only after the step is complete.
-- Do not commit unrelated changes or amend existing commits.
+- 각 이슈마다 최신 `develop`에서
+  `feature/<이슈번호>-<짧은-이름>` 브랜치를 만든다.
+- 작업 시작과 진행 상황, 완료 결과를 해당 GitHub 이슈에 댓글로 남긴다.
+- 커밋 메시지는 `Step N: 한 일 (#이슈번호)` 형식을 따른다.
+- 완료한 feature 브랜치를 push하고 `develop`에 병합한 뒤 `develop`도 push한다.
+  이슈는 작업이 끝난 뒤 닫는다.
+- 관련 없는 변경을 포함하거나 기존 커밋을 amend하지 않는다.
 
-## Validation
+## 검증
 
-- Run `make test` for Python behavior changes.
-- Run `make experiment` when changing probe-count measurements.
-- Start the server with `make serve`; verify HTTP behavior locally before relying on
-  Codespaces port visibility.
+- Python 코드 변경 후 `make test`를 실행하고 실제 결과를 사용자에게 알린다.
+- 탐색 횟수 실험을 변경하면 `make experiment`를 실행한다.
+- 웹 서버를 변경하면 `make serve`로 로컬 동작을 확인한 뒤 포트 공개를 안내한다.
+
+## 응답
+
+- 사용자는 1학년이다. 무엇을 바꿨는지 쉬운 말로 세 줄 이내에 요약한다.
