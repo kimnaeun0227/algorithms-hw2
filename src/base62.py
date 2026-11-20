@@ -2,7 +2,6 @@
 
 ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 _BASE = len(ALPHABET)
-_VALUES = {character: value for value, character in enumerate(ALPHABET)}
 
 
 def encode(value: int) -> str:
@@ -31,8 +30,8 @@ def decode(encoded: str) -> int:
     value = 0
     for character in encoded:
         try:
-            digit = _VALUES[character]
-        except KeyError as error:
+            digit = ALPHABET.index(character)
+        except ValueError as error:
             raise ValueError(f"invalid base62 character: {character!r}") from error
         value = value * _BASE + digit
     return value
