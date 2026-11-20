@@ -5,10 +5,11 @@ from src.hash_table import HashTable, LinearProbingHashTable
 
 class HashTableTests(unittest.TestCase):
     def test_capacity_must_be_a_positive_integer(self):
-        for capacity in (0, -1, 2.5, True):
-            with self.subTest(capacity=capacity):
-                with self.assertRaises(ValueError):
-                    HashTable(capacity)
+        for table_class in (HashTable, LinearProbingHashTable):
+            for capacity in (0, -1, 2.5, True):
+                with self.subTest(table_class=table_class.__name__, capacity=capacity):
+                    with self.assertRaises(ValueError):
+                        table_class(capacity)
 
     def test_collisions_updates_and_search_probes(self):
         table = HashTable(capacity=2)
@@ -79,10 +80,11 @@ class LinearProbingHashTableTests(unittest.TestCase):
         table.set("a", 1)
         table.set("b", 2)
 
+        table.set("a", 4)
+        self.assertEqual(table.size, 2)
+        self.assertEqual(table.get("a"), 4)
         with self.assertRaises(OverflowError):
             table.set("c", 3)
-        table.set("a", 4)
-        self.assertEqual(table.get("a"), 4)
         self.assertEqual(table.search("c"), (False, None, 2))
         self.assertEqual(table.size, 2)
 
