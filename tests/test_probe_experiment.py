@@ -2,7 +2,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from experiments.probe_experiment import build_results, render_svg, render_table, write_outputs
+from experiments.probe_experiment import (
+    build_chaining_results,
+    build_results,
+    render_svg,
+    render_table,
+    write_chaining_outputs,
+    write_outputs,
+)
 
 
 class ProbeExperimentTests(unittest.TestCase):
@@ -44,6 +51,33 @@ class ProbeExperimentTests(unittest.TestCase):
             self.assertTrue(pdf.startswith(b"%PDF-1.4"))
             self.assertIn(b"/Count 2", pdf)
             self.assertEqual(pdf.count(b"/Type /Page "), 2)
+
+    def test_chaining_experiment_covers_requested_loads_and_writes_csv_svg(self):
+        results = build_chaining_results(capacity=40)
+
+        self.assertEqual(
+            [result.target_alpha for result in results],
+            [step / 4 for step in range(1, 17)],
+        )
+        self.assertEqual(results[0].item_count, 10)
+        self.assertEqual(results[-1].item_count, 160)
+        self.assertTrue(all(result.success_measured >= 1 for result in results))
+        for result in results:
+            self.assertAlmostEqual(result.success_theory, 1 + result.alpha / 2)
+            self.assertAlmostEqual(result.failure_theory, result.alpha)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            csv_path, svg_path = write_chaining_outputs(
+                results, temporary_directory, capacity=40
+            )
+            csv_lines = Path(csv_path).read_text(encoding="utf-8").splitlines()
+            svg = Path(svg_path).read_text(encoding="utf-8")
+
+        self.assertEqual(Path(csv_path).name, "results.csv")
+        self.assertEqual(len(csv_lines), 17)
+        self.assertIn("target_alpha,alpha,item_count", csv_lines[0])
+        self.assertTrue(svg.startswith("<svg "))
+        self.assertEqual(svg.count("<polyline "), 4)
 
 
 if __name__ == "__main__":
