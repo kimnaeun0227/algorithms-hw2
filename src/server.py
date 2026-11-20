@@ -10,25 +10,60 @@ from src.shortener import Shortener
 
 def _render_table(shortener):
     table = shortener.url_table
+    linear = shortener.table_type == "linear"
+    title = "선형 탐지 해시 테이블" if linear else "분리 연결 해시 테이블"
+    column = "슬롯" if linear else "버킷"
+    contents_heading = "저장 내용" if linear else "연결 리스트"
+    location_label = "초기 슬롯은" if linear else "버킷 인덱스는"
     parts = [
         "<!doctype html><html lang=\"ko\"><meta charset=\"utf-8\">",
-        "<title>해시 테이블</title><h1>분리 연결 해시 테이블</h1>",
-        "<p>버킷 인덱스는 Horner 식 h = (31h + ord(c)) mod "
+        f"<title>{title}</title><h1>{title}</h1>",
+        f"<p>{location_label} Horner 식 h = (31h + ord(c)) mod "
         f"{table.capacity}으로 계산합니다.</p>",
-        "<table border=\"1\"><thead><tr><th>버킷</th><th>연결 리스트</th>"
+        f"<table border=\"1\"><thead><tr><th>{column}</th><th>{contents_heading}</th>"
         "<th>해시 계산 및 탐색</th></tr></thead><tbody>",
     ]
-    for index, bucket in enumerate(table.slots()):
+    for index, slot in enumerate(table.slots()):
+        if linear:
+            if slot is None:
+                contents = "(비어 있음)"
+                details = ""
+            elif slot == "<deleted>":
+                contents = "(삭제 표식)"
+                details = ""
+            else:
+                key, value = slot
+                steps = table.hash_steps(key)
+                initial = steps[-1][2] if steps else 0
+                path = table.probe_path(key)
+                calculations = []
+                previous = 0
+                for _, codepoint, current in steps:
+                    calculations.append(
+                        f"(31×{previous} + {codepoint}) mod {table.capacity} = {current}"
+                    )
+                    previous = current
+                details = (
+                    f"<li><code>{escape(key)}</code> 시작 슬롯 {initial}; "
+                    f"방문 슬롯 {' → '.join(str(cell) for cell in path)}; "
+                    f"{len(path)}칸 확인; {'; '.join(calculations)}</li>"
+                )
+                contents = f"{escape(key)} → {escape(value)}"
+            parts.append(
+                f"<tr><td>{index}</td><td>{contents}</td><td><ul>{details}</ul></td></tr>"
+            )
+            continue
+
         chain = " → ".join(
-            f"{escape(key)} → {escape(value)}" for key, value in bucket
+            f"{escape(key)} → {escape(value)}" for key, value in slot
         )
         if not chain:
             chain = "(비어 있음)"
         details = []
-        for key, value in bucket:
+        for key, value in slot:
             previous = 0
             calculations = []
-            for character, codepoint, current in table.hash_steps(key):
+            for _, codepoint, current in table.hash_steps(key):
                 calculations.append(
                     f"(31×{previous} + {codepoint}) mod {table.capacity} = {current}"
                 )
@@ -51,7 +86,24 @@ def _render_table(shortener):
 
 
 def make_handler(shortener=None):
-    shared_shortener = shortener if shortener is not None else Shortener()
+    if shortener is None:
+        shared_shorteners = [
+            ("chaining", Shortener()),
+            ("linear", Shortener(table_type="linear")),
+        ]
+    else:
+        shared_shorteners = [(shortener.table_type, shortener)]
+
+    def select_shortener(query):
+        requested = "chaining"
+        for name, value in parse_qsl(query, keep_blank_values=True):
+            if name == "table":
+                requested = value
+                break
+        for table_type, selected in shared_shorteners:
+            if table_type == requested:
+                return selected
+        return None
 
     class ShortenerHandler(BaseHTTPRequestHandler):
         def _respond(self, status, body, content_type="text/html; charset=utf-8"):
@@ -72,20 +124,29 @@ def make_handler(shortener=None):
                     "<form method=\"post\" action=\"/shorten\">"
                     "<label>URL <input name=\"url\" type=\"url\" required></label>"
                     "<button type=\"submit\">단축</button></form>"
-                    "<p><a href=\"/table\">해시 테이블 보기</a></p></html>",
+                    "<p>해시 테이블: <a href=\"/table?table=chaining\">체이닝</a> · "
+                    "<a href=\"/table?table=linear\">선형 탐지</a></p></html>",
                 )
                 return
 
             if route.path == "/table":
-                self._respond(200, _render_table(shared_shortener))
+                selected = select_shortener(route.query)
+                if selected is None:
+                    self._respond(400, "<h1>table은 chaining 또는 linear여야 합니다.</h1>")
+                    return
+                self._respond(200, _render_table(selected))
                 return
 
+            selected = select_shortener(route.query)
+            if selected is None:
+                self._respond(400, "<h1>table은 chaining 또는 linear여야 합니다.</h1>")
+                return
             code = unquote(route.path[1:])
             if not code or "/" in code:
                 self._respond(404, "<h1>짧은 코드를 찾을 수 없습니다.</h1>")
                 return
             try:
-                target = shared_shortener.expand(code)
+                target = selected.expand(code)
             except KeyError:
                 self._respond(404, "<h1>짧은 코드를 찾을 수 없습니다.</h1>")
                 return
@@ -120,7 +181,11 @@ def make_handler(shortener=None):
                 self._respond(400, "<h1>URL을 입력해야 합니다.</h1>")
                 return
             try:
-                code = shared_shortener.shorten(url)
+                code = None
+                for _, selected in shared_shorteners:
+                    shortened = selected.shorten(url)
+                    if code is None:
+                        code = shortened
             except (TypeError, ValueError, OverflowError) as error:
                 self._respond(400, f"<h1>URL을 단축할 수 없습니다.</h1><p>{escape(str(error))}</p>")
                 return
@@ -134,7 +199,8 @@ def make_handler(shortener=None):
                 f"<p>코드: <code>{escape(code)}</code></p>"
                 f"<p><a href=\"/{escape(code, quote=True)}\">{short_url}</a></p>"
                 "<p><a href=\"/\">다른 URL 입력</a> · "
-                "<a href=\"/table\">테이블 보기</a></p></html>",
+                "<a href=\"/table?table=chaining\">체이닝 테이블</a> · "
+                "<a href=\"/table?table=linear\">선형 탐지 테이블</a></p></html>",
             )
 
     return ShortenerHandler

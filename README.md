@@ -19,13 +19,14 @@
 
 | 파일 | 하는 일 |
 | --- | --- |
-| `SPEC.md` | 명세 틀. 에이전트가 초안을 쓰고 **본인이 고칩니다** |
-| `src/` · `tests/` · `experiments/` | 비어 있습니다. 수업에서 채웁니다 |
+| `SPEC.md` | 동작·입력 검증·실험 기준 |
+| `PLAN.md` | 구현 순서와 검증 원칙 |
+| `src/` · `tests/` · `experiments/` | 구현, 테스트, 재현 가능한 실험 결과 |
 | `tools/catchup.sh` | 수업 중 놓친 단계를 따라잡는 스크립트 |
 | `Makefile` | `make test` · `make serve` · `make experiment` |
 
-정답 코드는 들어 있지 않습니다. 에이전트는 작업 공간의 파일을 읽으므로, 정답이
-옆에 있으면 그대로 베껴 와서 연습이 되지 않습니다.
+해시 테이블과 URL 단축기는 교육용 구현입니다. `make test`로 경계 사례를 확인하고,
+`make experiment`로 측정 결과를 다시 만들 수 있습니다.
 
 ## 명령
 
@@ -35,13 +36,14 @@
 | --- | --- |
 | 테스트 | `make test` |
 | 웹 서버 (포트 8000) | `make serve` (`HOST`, `PORT` 재정의 가능) |
-| 체이닝 탐색 비용 실험 | `make experiment` |
+| 체이닝·선형 탐지 비교 실험 | `make experiment` |
 | 놓친 단계 따라잡기 | `sh tools/catchup.sh <단계 번호>` |
 
 외부 라이브러리는 쓰지 않습니다. Python 표준 모듈만으로 충분합니다.
-`make experiment`는 적재율 0.25~4의 탐색 비용 표
-(`experiments/probe_results.md`)와 SVG 그래프
-(`experiments/probe_results.svg`)를 생성합니다.
+`make experiment`는 적재율 0.1~0.9의 비교 표
+(`experiments/probe_results.md`), SVG 그래프
+(`experiments/probe_results.svg`), 2쪽 이내 PDF 보고서
+(`experiments/linear_probe_report.pdf`)를 생성합니다.
 
 ## 로컬에서 하기
 

@@ -73,3 +73,90 @@ class HashTable:
     def __contains__(self, key):
         found, _, _ = self.search(key)
         return found
+
+
+class LinearProbingHashTable(HashTable):
+    """Fixed-capacity open-addressing table with tombstones for deletion."""
+
+    def __init__(self, capacity=8):
+        if not isinstance(capacity, int) or isinstance(capacity, bool) or capacity <= 0:
+            raise ValueError("capacity must be a positive integer")
+        self.capacity = capacity
+        self.size = 0
+        self._tombstone = object()
+        self._slots = [None] * capacity
+
+    def _search_with_path(self, key):
+        index = self._index(key)
+        path = []
+        for offset in range(self.capacity):
+            slot_index = (index + offset) % self.capacity
+            path.append(slot_index)
+            slot = self._slots[slot_index]
+            if slot is None:
+                return False, None, path
+            if slot is self._tombstone:
+                continue
+            stored_key, value = slot
+            if stored_key == key:
+                return True, value, path
+        return False, None, path
+
+    def search(self, key):
+        found, value, path = self._search_with_path(key)
+        return found, value, len(path)
+
+    def probe_path(self, key):
+        """Return the slot indexes visited by a lookup, including its stopping slot."""
+        _, _, path = self._search_with_path(key)
+        return path
+
+    def set(self, key, value):
+        index = self._index(key)
+        first_tombstone = None
+        for offset in range(self.capacity):
+            slot_index = (index + offset) % self.capacity
+            slot = self._slots[slot_index]
+            if slot is self._tombstone:
+                if first_tombstone is None:
+                    first_tombstone = slot_index
+                continue
+            if slot is None:
+                insert_at = (
+                    first_tombstone if first_tombstone is not None else slot_index
+                )
+                self._slots[insert_at] = (key, value)
+                self.size += 1
+                return
+            stored_key, _ = slot
+            if stored_key == key:
+                self._slots[slot_index] = (key, value)
+                return
+
+        if first_tombstone is not None:
+            self._slots[first_tombstone] = (key, value)
+            self.size += 1
+            return
+        raise OverflowError("hash table is full")
+
+    def delete(self, key):
+        index = self._index(key)
+        for offset in range(self.capacity):
+            slot_index = (index + offset) % self.capacity
+            slot = self._slots[slot_index]
+            if slot is None:
+                return False
+            if slot is self._tombstone:
+                continue
+            stored_key, _ = slot
+            if stored_key == key:
+                self._slots[slot_index] = self._tombstone
+                self.size -= 1
+                return True
+        return False
+
+    def slots(self):
+        return [
+            "<deleted>" if slot is self._tombstone else slot
+            for slot in self._slots
+        ]
