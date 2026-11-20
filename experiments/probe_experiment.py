@@ -11,6 +11,7 @@ from src.hash_table import HashTable, LinearProbingHashTable
 DEFAULT_CAPACITY = 10000
 CHAINING_CAPACITY = 4093
 CHAINING_LOAD_FACTORS = tuple(step / 4 for step in range(1, 17))
+REPORT_REPOSITORY_URL = "https://github.com/kimnaeun0227/algorithms-hw2"
 
 
 @dataclass(frozen=True)
@@ -413,108 +414,92 @@ def render_svg(results):
     return "\n".join(parts) + "\n"
 
 
-def _pdf_escape(text):
-    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-
-
 def _pdf_text(x, y, size, text):
-    ascii_text = text.encode("ascii", "replace").decode("ascii")
+    encoded_text = text.encode("utf-16-be").hex().upper()
     return (
         f"BT /F1 {size} Tf 1 0 0 1 {x:.1f} {y:.1f} Tm "
-        f"({_pdf_escape(ascii_text)}) Tj ET\n"
+        f"<{encoded_text}> Tj ET\n"
     )
 
 
 def _report_page_one(results, capacity):
-    commands = []
-    commands.append(_pdf_text(50, 748, 18, "Hash Table Probe Cost Comparison"))
-    commands.append(
-        _pdf_text(
-            50,
-            720,
-            10,
-            f"Method: same seeded keys, capacity {capacity}, load factors 0.1 through 0.9.",
-        )
-    )
-    commands.append(
-        _pdf_text(
-            50,
-            703,
-            9,
-            "Chaining: success 1+alpha/2; failure alpha. Linear formulas are approximations.",
-        )
-    )
-    commands.append(
-        _pdf_text(
-            50,
-            686,
-            9,
-            "Linear: success 0.5*(1+1/(1-alpha)); failure 0.5*(1+1/(1-alpha)^2).",
-        )
-    )
-    commands.append(_pdf_text(50, 650, 11, "Measured probes and theoretical estimates"))
-    commands.append(
-        _pdf_text(
-            50,
-            630,
-            8,
-            "alpha | chain success M/T | chain fail M/T | linear success M/T | linear fail M/T",
-        )
-    )
-    y = 614
+    commands = [
+        _pdf_text(42, 774, 8, REPORT_REPOSITORY_URL),
+        _pdf_text(42, 751, 16, "해시 테이블 탐색 비용 비교"),
+        _pdf_text(42, 733, 8, "개별 체이닝과 선형 탐지의 성공·실패 탐색을 적재율별로 비교했다."),
+        _pdf_text(42, 713, 10, "구현 방식"),
+        _pdf_text(42, 699, 8, "체이닝은 버킷별 연결 리스트에 (URL, 코드)를 저장해 충돌 항목을 같은 칸에 둔다."),
+        _pdf_text(42, 687, 8, "선형 탐지는 충돌 시 다음 슬롯을 조사하고, 삭제 표식과 끝에서 0번으로의 순환을 유지한다."),
+        _pdf_text(42, 675, 8, "두 방식은 Horner 해시 h=(31h+ord(c)) mod M을 사용해 URL↔코드 테이블을 구성한다."),
+        _pdf_text(42, 655, 10, "실험 조건"),
+        _pdf_text(42, 641, 8, f"용량 M={capacity:,}, 난수 시드 2026, 동일 키·부재 질의 집합, 적재율 alpha=0.1~0.9."),
+        _pdf_text(42, 629, 8, "성공은 저장 키 전체를, 실패는 고정된 부재 키 집합을 조회했다. 값은 평균 방문 횟수다."),
+        _pdf_text(42, 617, 8, "체이닝은 비교 노드, 선형 탐지는 방문 슬롯을 세며 실패 시 종료 빈 슬롯도 포함한다."),
+        _pdf_text(42, 605, 8, "기대값: 체이닝 성공 1+alpha/2, 실패 alpha."),
+        _pdf_text(42, 593, 8, "선형 근사: 성공 0.5*(1+1/(1-alpha)), 실패 0.5*(1+1/(1-alpha)^2)."),
+        _pdf_text(42, 573, 10, "평균 방문 횟수 (실측 / 이론·근사)"),
+        _pdf_text(42, 555, 7, "적재율"),
+        _pdf_text(104, 555, 7, "체이닝 성공"),
+        _pdf_text(210, 555, 7, "체이닝 실패"),
+        _pdf_text(318, 555, 7, "선형 성공"),
+        _pdf_text(426, 555, 7, "선형 실패"),
+    ]
+    y = 541
     for result in results:
-        row = (
-            f"{result.alpha:.1f} | "
-            f"{result.chaining_success_measured:.2f}/{result.chaining_success_theory:.2f} | "
-            f"{result.chaining_failure_measured:.2f}/{result.chaining_failure_theory:.2f} | "
-            f"{result.linear_success_measured:.2f}/{result.linear_success_theory:.2f} | "
-            f"{result.linear_failure_measured:.2f}/{result.linear_failure_theory:.2f}"
+        values = (
+            (42, f"{result.alpha:.1f}"),
+            (
+                104,
+                f"{result.chaining_success_measured:.3f}/{result.chaining_success_theory:.3f}",
+            ),
+            (
+                210,
+                f"{result.chaining_failure_measured:.3f}/{result.chaining_failure_theory:.3f}",
+            ),
+            (
+                318,
+                f"{result.linear_success_measured:.3f}/{result.linear_success_theory:.3f}",
+            ),
+            (
+                426,
+                f"{result.linear_failure_measured:.3f}/{result.linear_failure_theory:.3f}",
+            ),
         )
-        commands.append(_pdf_text(50, y, 8, row))
-        y -= 13
+        commands.extend(_pdf_text(x, y, 7, value) for x, value in values)
+        y -= 12
 
     highest_load = results[-1]
-    commands.append(_pdf_text(50, 475, 11, "Interpretation"))
-    commands.append(
-        _pdf_text(
-            50,
-            457,
-            9,
-            "Chaining grows gradually with alpha; its measurements stay near the uniform-hashing model.",
-        )
-    )
-    commands.append(
-        _pdf_text(
-            50,
-            440,
-            9,
-            "Linear probing rises faster as primary clustering creates long runs of occupied slots.",
-        )
-    )
-    commands.append(
-        _pdf_text(
-            50,
-            423,
-            9,
-            f"At alpha 0.9, linear failure measured {highest_load.linear_failure_measured:.2f} "
-            f"versus approximate 50.50 probes.",
-        )
-    )
-    commands.append(
-        _pdf_text(
-            50,
-            406,
-            9,
-            "Finite deterministic keys and the approximate model explain residual differences.",
-        )
-    )
-    commands.append(
-        _pdf_text(
-            50,
-            389,
-            9,
-            "A linear-table probe counts each inspected slot, including the terminating empty slot.",
-        )
+    commands.extend(
+        [
+            _pdf_text(42, 423, 10, "결과 해석"),
+            _pdf_text(42, 409, 8, "체이닝 실측은 alpha=0.1~0.9에서 성공 1.045→1.443회, 실패 0.101→0.913회로 완만히 늘었다."),
+            _pdf_text(42, 397, 8, "선형 탐지는 충돌한 키들이 연속 슬롯을 차지하는 군집 때문에 빈 슬롯까지 긴 탐색이 필요하다."),
+            _pdf_text(
+                42,
+                385,
+                8,
+                f"alpha=0.9의 실패 탐지는 {highest_load.linear_failure_measured:.3f}회로 "
+                f"체이닝 {highest_load.chaining_failure_measured:.3f}회의 약 "
+                f"{highest_load.linear_failure_measured / highest_load.chaining_failure_measured:.1f}배다.",
+            ),
+            _pdf_text(
+                42,
+                373,
+                8,
+                f"선형 실패 근사값 {highest_load.linear_failure_theory:.3f}회와의 차이는 "
+                f"{highest_load.linear_failure_theory - highest_load.linear_failure_measured:.3f}회다.",
+            ),
+            _pdf_text(42, 361, 8, "근사식은 이상적 분포의 기대값이며, 실측은 고정 시드의 유한한 키 집합 하나에 대한 결과다."),
+            _pdf_text(42, 341, 10, "에이전트 오류"),
+            _pdf_text(42, 327, 8, "처음에는 웹 테이블 용량을 1024로 두어 빈 슬롯 1023개가 보였다. 사용자가 화면을 확인해 지적했다."),
+            _pdf_text(42, 315, 8, "기본 서버를 8칸으로 줄이고 충돌 URL 3개를 넣은 뒤, 8행과 선형 탐지 경로 6→7→0을 테스트·HTTP로 확인했다."),
+            _pdf_text(42, 293, 10, "느낀 점"),
+            _pdf_text(42, 279, 8, "이번 실험에서 가장 인상 깊었던 점은 적재율 0.9에서 선형 탐지의 실패 탐색이 평균"),
+            _pdf_text(42, 267, 8, "44.704회까지 늘어난 것이다. 같은 상황의 체이닝은 0.913회라서, 충돌 처리 방식이 조회"),
+            _pdf_text(42, 255, 8, "비용을 크게 바꾼다는 것을 알 수 있었다. 웹 테이블에서 충돌 URL의 방문 슬롯을 확인하니"),
+            _pdf_text(42, 243, 8, "군집이 생기는 과정이 더 잘 이해됐다. 다음에는 다른 키 집합에서도 실험해 결과가 얼마나"),
+            _pdf_text(42, 231, 8, "달라지는지 확인해 보고 싶다."),
+        ]
     )
     return "".join(commands).encode("ascii")
 
@@ -537,13 +522,13 @@ def _pdf_chart(commands, results, top, max_probes, title, measured_names, theory
         commands.append(_pdf_text(x - 7, bottom - 15, 8, f"{alpha:.1f}"))
     commands.append(f"0 G 1 w {left} {bottom} m {left+width} {bottom} l S\n")
     commands.append(f"0 G 1 w {left} {bottom} m {left} {top} l S\n")
-    commands.append(_pdf_text(left + 200, bottom - 30, 9, "Load factor alpha"))
+    commands.append(_pdf_text(left + 200, bottom - 30, 9, "적재율 alpha"))
 
     series = (
-        (measured_names[0], (0.1, 0.35, 0.7), False, "Chaining measured"),
-        (theory_names[0], (0.1, 0.35, 0.7), True, "Chaining theory"),
-        (measured_names[1], (0.8, 0.15, 0.15), False, "Linear measured"),
-        (theory_names[1], (0.8, 0.15, 0.15), True, "Linear theory"),
+        (measured_names[0], (0.1, 0.35, 0.7), False, "체이닝 실측"),
+        (theory_names[0], (0.1, 0.35, 0.7), True, "체이닝 이론"),
+        (measured_names[1], (0.8, 0.15, 0.15), False, "선형 탐지 실측"),
+        (theory_names[1], (0.8, 0.15, 0.15), True, "선형 탐지 근사"),
     )
     for attribute, color, dashed, _ in series:
         commands.append(f"{color[0]} {color[1]} {color[2]} RG 1.5 w\n")
@@ -567,15 +552,15 @@ def _pdf_chart(commands, results, top, max_probes, title, measured_names, theory
 
 def _report_page_two(results):
     commands = [
-        _pdf_text(50, 760, 16, "Probe Cost Curves"),
-        _pdf_text(50, 742, 9, "Solid lines are measurements; dashed lines are theoretical estimates."),
+        _pdf_text(50, 760, 16, "적재율별 탐색 비용"),
+        _pdf_text(50, 742, 9, "실선은 실측, 점선은 이론·근사값이다. 세로축은 평균 방문 횟수다."),
     ]
     _pdf_chart(
         commands,
         results,
         690,
         6.0,
-        "Successful search",
+        "성공 탐색",
         ("chaining_success_measured", "linear_success_measured"),
         ("chaining_success_theory", "linear_success_theory"),
     )
@@ -584,7 +569,7 @@ def _report_page_two(results):
         results,
         380,
         60.0,
-        "Unsuccessful search",
+        "실패 탐색",
         ("chaining_failure_measured", "linear_failure_measured"),
         ("chaining_failure_theory", "linear_failure_theory"),
     )
@@ -605,7 +590,34 @@ def render_pdf_report(results, capacity=DEFAULT_CAPACITY):
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
         b"/Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>",
         None,
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Font /Subtype /Type0 /BaseFont /HYGoThic-Medium "
+        b"/Encoding /UniKS-UCS2-H /DescendantFonts [8 0 R] /ToUnicode 9 0 R >>",
+        b"<< /Type /Font /Subtype /CIDFontType0 /BaseFont /HYGoThic-Medium "
+        b"/CIDSystemInfo << /Registry (Adobe) /Ordering (Korea1) /Supplement 1 >> "
+        b"/FontDescriptor 10 0 R /DW 1000 >>",
+        (
+            b"<< /Length 345 >>\nstream\n"
+            b"/CIDInit /ProcSet findresource begin\n"
+            b"12 dict begin\n"
+            b"begincmap\n"
+            b"/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"
+            b"/CMapName /Adobe-Korea1-UCS def\n"
+            b"/CMapType 2 def\n"
+            b"1 begincodespacerange\n"
+            b"<0000> <FFFF>\n"
+            b"endcodespacerange\n"
+            b"1 beginbfrange\n"
+            b"<0000> <FFFF> <0000>\n"
+            b"endbfrange\n"
+            b"endcmap\n"
+            b"CMapName currentdict /CMap defineresource pop\n"
+            b"end\n"
+            b"end\n"
+            b"endstream"
+        ),
+        b"<< /Type /FontDescriptor /FontName /HYGoThic-Medium /Flags 4 "
+        b"/FontBBox [-250 -350 1000 1000] /ItalicAngle 0 /Ascent 880 "
+        b"/Descent -120 /CapHeight 700 /StemV 80 >>",
     ]
     for index, page in enumerate(pages):
         object_number = 4 if index == 0 else 6
