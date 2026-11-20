@@ -1,5 +1,6 @@
 """Compare chaining and linear-probing costs across load factors."""
 
+import csv
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +9,8 @@ from src.base62 import encode
 from src.hash_table import HashTable, LinearProbingHashTable
 
 DEFAULT_CAPACITY = 10000
+CHAINING_CAPACITY = 4093
+CHAINING_LOAD_FACTORS = tuple(step / 4 for step in range(1, 17))
 
 
 @dataclass(frozen=True)
@@ -21,6 +24,17 @@ class ProbeResult:
     linear_success_theory: float
     linear_failure_measured: float
     linear_failure_theory: float
+
+
+@dataclass(frozen=True)
+class ChainingProbeResult:
+    target_alpha: float
+    alpha: float
+    item_count: int
+    success_measured: float
+    success_theory: float
+    failure_measured: float
+    failure_theory: float
 
 
 def build_results(capacity=DEFAULT_CAPACITY):
@@ -83,6 +97,185 @@ def _average_probes(table, keys, expected_found):
             raise RuntimeError(f"unexpected lookup result for {key!r}")
         total += probes
     return total / len(keys)
+
+
+def build_chaining_results(capacity=CHAINING_CAPACITY):
+    if not isinstance(capacity, int) or isinstance(capacity, bool) or capacity < 4:
+        raise ValueError("capacity must be an integer of at least four")
+
+    generator = random.Random(2026)
+    urls = [
+        f"https://{generator.getrandbits(64):016x}.example/item/{index}"
+        for index in range(capacity * 4)
+    ]
+    missing_urls = [
+        f"https://{generator.getrandbits(64):016x}.example/missing/{index}"
+        for index in range(capacity)
+    ]
+    results = []
+
+    for target_alpha in CHAINING_LOAD_FACTORS:
+        item_count = round(capacity * target_alpha)
+        keys = urls[:item_count]
+        table = HashTable(capacity=capacity)
+        for index, key in enumerate(keys):
+            table.set(key, index)
+
+        alpha = item_count / capacity
+        success_measured = _average_probes(table, keys, expected_found=True)
+        failure_measured = _average_probes(
+            table, missing_urls, expected_found=False
+        )
+        results.append(
+            ChainingProbeResult(
+                target_alpha=target_alpha,
+                alpha=alpha,
+                item_count=item_count,
+                success_measured=success_measured,
+                success_theory=1 + alpha / 2,
+                failure_measured=failure_measured,
+                failure_theory=alpha,
+            )
+        )
+    return results
+
+
+def render_chaining_svg(results, capacity=CHAINING_CAPACITY):
+    width, height = 1000, 700
+    left, right = 95, 50
+    plot_width = width - left - right
+    panel_height = 210
+    min_alpha, max_alpha = CHAINING_LOAD_FACTORS[0], CHAINING_LOAD_FACTORS[-1]
+    panels = (
+        (55, 3.5, "성공 탐색 평균 비교", "success_measured", "success_theory"),
+        (365, 4.5, "실패 탐색 평균 비교", "failure_measured", "failure_theory"),
+    )
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}" role="img" aria-labelledby="title description">',
+        "<title id=\"title\">체이닝 탐색 비용: 실측과 이론</title>",
+        f'<desc id="description">용량 {capacity}, 적재율 0.25부터 4까지의 '
+        "성공·실패 비교 노드 수</desc>",
+        '<rect width="100%" height="100%" fill="white"/>',
+        f'<text x="{left}" y="28" font-size="13">버킷 수: {capacity}</text>',
+    ]
+    colors = {"measured": "#1f77b4", "theory": "#d62728"}
+
+    for top, max_probes, title, measured_name, theory_name in panels:
+        graph_top = top + 32
+        graph_bottom = graph_top + panel_height
+
+        def x_position(alpha):
+            return left + (alpha - min_alpha) / (max_alpha - min_alpha) * plot_width
+
+        def y_position(probes):
+            return graph_bottom - probes / max_probes * panel_height
+
+        parts.append(f'<text x="{left}" y="{top+18}" font-size="17">{title}</text>')
+        tick_count = int(max_probes * 2)
+        for tick in range(tick_count + 1):
+            value = tick / 2
+            y = y_position(value)
+            parts.append(
+                f'<line x1="{left}" y1="{y:.1f}" x2="{width-right}" y2="{y:.1f}" '
+                'stroke="#dddddd"/>'
+            )
+            parts.append(
+                f'<text x="{left-10}" y="{y+4:.1f}" text-anchor="end" '
+                f'font-size="11">{value:g}</text>'
+            )
+
+        for alpha in (0.25, 1, 2, 3, 4):
+            x = x_position(alpha)
+            parts.append(
+                f'<line x1="{x:.1f}" y1="{graph_top}" x2="{x:.1f}" '
+                f'y2="{graph_bottom}" stroke="#eeeeee"/>'
+            )
+            parts.append(
+                f'<text x="{x:.1f}" y="{graph_bottom+18}" text-anchor="middle" '
+                f'font-size="11">{alpha:g}</text>'
+            )
+
+        parts.extend(
+            [
+                f'<line x1="{left}" y1="{graph_bottom}" x2="{width-right}" '
+                f'y2="{graph_bottom}" stroke="#333"/>',
+                f'<line x1="{left}" y1="{graph_top}" x2="{left}" '
+                f'y2="{graph_bottom}" stroke="#333"/>',
+                f'<text x="{left+plot_width/2:.1f}" y="{graph_bottom+35}" '
+                'text-anchor="middle" font-size="12">적재율 α</text>',
+            ]
+        )
+
+        for attribute, kind, label, dashed in (
+            (measured_name, "measured", "실측", False),
+            (theory_name, "theory", "이론", True),
+        ):
+            points = " ".join(
+                f"{x_position(result.alpha):.1f},"
+                f"{y_position(getattr(result, attribute)):.1f}"
+                for result in results
+            )
+            dash = ' stroke-dasharray="7 5"' if dashed else ""
+            parts.append(
+                f'<polyline points="{points}" fill="none" '
+                f'stroke="{colors[kind]}" stroke-width="2.5"{dash}/>'
+            )
+
+        legend_y = graph_bottom + 58
+        for index, (kind, label, dashed) in enumerate(
+            (("measured", "실측", False), ("theory", "이론", True))
+        ):
+            x = left + index * 150
+            dash = ' stroke-dasharray="7 5"' if dashed else ""
+            parts.append(
+                f'<line x1="{x}" y1="{legend_y}" x2="{x+25}" y2="{legend_y}" '
+                f'stroke="{colors[kind]}" stroke-width="2.5"{dash}/>'
+            )
+            parts.append(
+                f'<text x="{x+31}" y="{legend_y+4}" font-size="11">{label}</text>'
+            )
+
+    parts.append("</svg>")
+    return "\n".join(parts) + "\n"
+
+
+def write_chaining_outputs(results, output_dir, capacity=CHAINING_CAPACITY):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = output_dir / "results.csv"
+    svg_path = output_dir / "results.svg"
+    with csv_path.open("w", encoding="utf-8", newline="") as output:
+        writer = csv.writer(output, lineterminator="\n")
+        writer.writerow(
+            (
+                "target_alpha",
+                "alpha",
+                "item_count",
+                "capacity",
+                "success_measured_nodes",
+                "success_theory_nodes",
+                "failure_measured_nodes",
+                "failure_theory_nodes",
+            )
+        )
+        for result in results:
+            writer.writerow(
+                (
+                    f"{result.target_alpha:.2f}",
+                    f"{result.alpha:.6f}",
+                    result.item_count,
+                    capacity,
+                    f"{result.success_measured:.6f}",
+                    f"{result.success_theory:.6f}",
+                    f"{result.failure_measured:.6f}",
+                    f"{result.failure_theory:.6f}",
+                )
+            )
+    svg_path.write_text(
+        render_chaining_svg(results, capacity), encoding="utf-8"
+    )
+    return csv_path, svg_path
 
 
 def render_table(results):
@@ -469,9 +662,15 @@ def main():
     table_path, svg_path, pdf_path = write_outputs(
         results, Path(__file__).parent, DEFAULT_CAPACITY
     )
+    chaining_results = build_chaining_results()
+    csv_path, chaining_svg_path = write_chaining_outputs(
+        chaining_results, Path(__file__).parent, CHAINING_CAPACITY
+    )
     print(f"표 저장: {table_path}")
     print(f"그래프 저장: {svg_path}")
     print(f"보고서 저장: {pdf_path}")
+    print(f"체이닝 실험 CSV 저장: {csv_path}")
+    print(f"체이닝 실험 그래프 저장: {chaining_svg_path}")
 
 
 if __name__ == "__main__":

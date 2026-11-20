@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-labelledby="title description">
+<title id="title">체이닝 탐색 비용: 실측과 이론</title>
+<desc id="description">용량 4093, 적재율 0.25부터 4까지의 성공·실패 비교 노드 수</desc>
+<rect width="100%" height="100%" fill="white"/>
+<text x="95" y="28" font-size="13">버킷 수: 4093</text>
+<text x="95" y="73" font-size="17">성공 탐색 평균 비교</text>
+<line x1="95" y1="297.0" x2="950" y2="297.0" stroke="#dddddd"/>
+<text x="85" y="301.0" text-anchor="end" font-size="11">0</text>
+<line x1="95" y1="267.0" x2="950" y2="267.0" stroke="#dddddd"/>
+<text x="85" y="271.0" text-anchor="end" font-size="11">0.5</text>
+<line x1="95" y1="237.0" x2="950" y2="237.0" stroke="#dddddd"/>
+<text x="85" y="241.0" text-anchor="end" font-size="11">1</text>
+<line x1="95" y1="207.0" x2="950" y2="207.0" stroke="#dddddd"/>
+<text x="85" y="211.0" text-anchor="end" font-size="11">1.5</text>
+<line x1="95" y1="177.0" x2="950" y2="177.0" stroke="#dddddd"/>
+<text x="85" y="181.0" text-anchor="end" font-size="11">2</text>
+<line x1="95" y1="147.0" x2="950" y2="147.0" stroke="#dddddd"/>
+<text x="85" y="151.0" text-anchor="end" font-size="11">2.5</text>
+<line x1="95" y1="117.0" x2="950" y2="117.0" stroke="#dddddd"/>
+<text x="85" y="121.0" text-anchor="end" font-size="11">3</text>
+<line x1="95" y1="87.0" x2="950" y2="87.0" stroke="#dddddd"/>
+<text x="85" y="91.0" text-anchor="end" font-size="11">3.5</text>
+<line x1="95.0" y1="87" x2="95.0" y2="297" stroke="#eeeeee"/>
+<text x="95.0" y="315" text-anchor="middle" font-size="11">0.25</text>
+<line x1="266.0" y1="87" x2="266.0" y2="297" stroke="#eeeeee"/>
+<text x="266.0" y="315" text-anchor="middle" font-size="11">1</text>
+<line x1="494.0" y1="87" x2="494.0" y2="297" stroke="#eeeeee"/>
+<text x="494.0" y="315" text-anchor="middle" font-size="11">2</text>
+<line x1="722.0" y1="87" x2="722.0" y2="297" stroke="#eeeeee"/>
+<text x="722.0" y="315" text-anchor="middle" font-size="11">3</text>
+<line x1="950.0" y1="87" x2="950.0" y2="297" stroke="#eeeeee"/>
+<text x="950.0" y="315" text-anchor="middle" font-size="11">4</text>
+<line x1="95" y1="297" x2="950" y2="297" stroke="#333"/>
+<line x1="95" y1="87" x2="95" y2="297" stroke="#333"/>
+<text x="522.5" y="332" text-anchor="middle" font-size="12">적재율 α</text>
+<polyline points="95.0,229.7 152.0,223.0 209.0,214.9 266.0,207.3 323.0,199.1 380.0,191.9 437.0,183.8 494.0,175.9 551.0,168.1 608.0,160.2 665.0,152.9 722.0,145.8 779.0,139.2 836.0,131.6 893.0,124.3 950.0,116.6" fill="none" stroke="#1f77b4" stroke-width="2.5"/>
+<polyline points="95.0,229.5 152.0,222.0 209.0,214.5 266.0,207.0 323.0,199.5 380.0,192.0 437.0,184.5 494.0,177.0 551.0,169.5 608.0,162.0 665.0,154.5 722.0,147.0 779.0,139.5 836.0,132.0 893.0,124.5 950.0,117.0" fill="none" stroke="#d62728" stroke-width="2.5" stroke-dasharray="7 5"/>
+<line x1="95" y1="355" x2="120" y2="355" stroke="#1f77b4" stroke-width="2.5"/>
+<text x="126" y="359" font-size="11">실측</text>
+<line x1="245" y1="355" x2="270" y2="355" stroke="#d62728" stroke-width="2.5" stroke-dasharray="7 5"/>
+<text x="276" y="359" font-size="11">이론</text>
+<text x="95" y="383" font-size="17">실패 탐색 평균 비교</text>
+<line x1="95" y1="607.0" x2="950" y2="607.0" stroke="#dddddd"/>
+<text x="85" y="611.0" text-anchor="end" font-size="11">0</text>
+<line x1="95" y1="583.7" x2="950" y2="583.7" stroke="#dddddd"/>
+<text x="85" y="587.7" text-anchor="end" font-size="11">0.5</text>
+<line x1="95" y1="560.3" x2="950" y2="560.3" stroke="#dddddd"/>
+<text x="85" y="564.3" text-anchor="end" font-size="11">1</text>
+<line x1="95" y1="537.0" x2="950" y2="537.0" stroke="#dddddd"/>
+<text x="85" y="541.0" text-anchor="end" font-size="11">1.5</text>
+<line x1="95" y1="513.7" x2="950" y2="513.7" stroke="#dddddd"/>
+<text x="85" y="517.7" text-anchor="end" font-size="11">2</text>
+<line x1="95" y1="490.3" x2="950" y2="490.3" stroke="#dddddd"/>
+<text x="85" y="494.3" text-anchor="end" font-size="11">2.5</text>
+<line x1="95" y1="467.0" x2="950" y2="467.0" stroke="#dddddd"/>
+<text x="85" y="471.0" text-anchor="end" font-size="11">3</text>
+<line x1="95" y1="443.7" x2="950" y2="443.7" stroke="#dddddd"/>
+<text x="85" y="447.7" text-anchor="end" font-size="11">3.5</text>
+<line x1="95" y1="420.3" x2="950" y2="420.3" stroke="#dddddd"/>
+<text x="85" y="424.3" text-anchor="end" font-size="11">4</text>
+<line x1="95" y1="397.0" x2="950" y2="397.0" stroke="#dddddd"/>
+<text x="85" y="401.0" text-anchor="end" font-size="11">4.5</text>
+<line x1="95.0" y1="397" x2="95.0" y2="607" stroke="#eeeeee"/>
+<text x="95.0" y="625" text-anchor="middle" font-size="11">0.25</text>
+<line x1="266.0" y1="397" x2="266.0" y2="607" stroke="#eeeeee"/>
+<text x="266.0" y="625" text-anchor="middle" font-size="11">1</text>
+<line x1="494.0" y1="397" x2="494.0" y2="607" stroke="#eeeeee"/>
+<text x="494.0" y="625" text-anchor="middle" font-size="11">2</text>
+<line x1="722.0" y1="397" x2="722.0" y2="607" stroke="#eeeeee"/>
+<text x="722.0" y="625" text-anchor="middle" font-size="11">3</text>
+<line x1="950.0" y1="397" x2="950.0" y2="607" stroke="#eeeeee"/>
+<text x="950.0" y="625" text-anchor="middle" font-size="11">4</text>
+<line x1="95" y1="607" x2="950" y2="607" stroke="#333"/>
+<line x1="95" y1="397" x2="95" y2="607" stroke="#333"/>
+<text x="522.5" y="642" text-anchor="middle" font-size="12">적재율 α</text>
+<polyline points="95.0,595.4 152.0,584.4 209.0,572.3 266.0,560.8 323.0,549.2 380.0,537.3 437.0,525.4 494.0,513.5 551.0,501.4 608.0,489.2 665.0,477.3 722.0,465.4 779.0,453.3 836.0,442.0 893.0,429.7 950.0,418.3" fill="none" stroke="#1f77b4" stroke-width="2.5"/>
+<polyline points="95.0,595.3 152.0,583.7 209.0,572.0 266.0,560.3 323.0,548.7 380.0,537.0 437.0,525.3 494.0,513.7 551.0,502.0 608.0,490.3 665.0,478.7 722.0,467.0 779.0,455.3 836.0,443.7 893.0,432.0 950.0,420.3" fill="none" stroke="#d62728" stroke-width="2.5" stroke-dasharray="7 5"/>
+<line x1="95" y1="665" x2="120" y2="665" stroke="#1f77b4" stroke-width="2.5"/>
+<text x="126" y="669" font-size="11">실측</text>
+<line x1="245" y1="665" x2="270" y2="665" stroke="#d62728" stroke-width="2.5" stroke-dasharray="7 5"/>
+<text x="276" y="669" font-size="11">이론</text>
+</svg>
