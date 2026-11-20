@@ -1,6 +1,6 @@
 import unittest
 
-from src.hash_table import HashTable
+from src.hash_table import HashTable, LinearProbingHashTable
 
 
 class HashTableTests(unittest.TestCase):
@@ -48,6 +48,53 @@ class HashTableTests(unittest.TestCase):
             table.set(1, "value")
         with self.assertRaises(TypeError):
             table.search(None)
+
+
+class LinearProbingHashTableTests(unittest.TestCase):
+    def test_wraps_from_last_slot_and_visits_until_empty_slot(self):
+        table = LinearProbingHashTable(capacity=4)
+        table.set("c", 1)
+        table.set("g", 2)
+
+        self.assertEqual(table.slots()[3], ("c", 1))
+        self.assertEqual(table.slots()[0], ("g", 2))
+        self.assertEqual(table.search("g"), (True, 2, 2))
+        self.assertEqual(table.probe_path("k"), [3, 0, 1])
+
+    def test_tombstone_preserves_probe_chain_and_can_be_reused(self):
+        table = LinearProbingHashTable(capacity=4)
+        table.set("c", 1)
+        table.set("g", 2)
+
+        self.assertTrue(table.delete("c"))
+        self.assertEqual(table.slots()[3], "<deleted>")
+        self.assertEqual(table.get("g"), 2)
+        self.assertEqual(table.probe_path("g"), [3, 0])
+        table.set("k", 3)
+        self.assertEqual(table.slots()[3], ("k", 3))
+        self.assertEqual(table.size, 2)
+
+    def test_full_table_rejects_new_keys_but_updates_existing_keys(self):
+        table = LinearProbingHashTable(capacity=2)
+        table.set("a", 1)
+        table.set("b", 2)
+
+        with self.assertRaises(OverflowError):
+            table.set("c", 3)
+        table.set("a", 4)
+        self.assertEqual(table.get("a"), 4)
+        self.assertEqual(table.search("c"), (False, None, 2))
+        self.assertEqual(table.size, 2)
+
+    def test_common_get_delete_and_membership_interface(self):
+        table = LinearProbingHashTable(capacity=3)
+        self.assertEqual(table.search("missing"), (False, None, 1))
+        table.set("key", "value")
+        self.assertIn("key", table)
+        self.assertEqual(table.get("key"), "value")
+        self.assertTrue(table.delete("key"))
+        self.assertNotIn("key", table)
+        self.assertEqual(table.get("missing", "fallback"), "fallback")
 
 
 if __name__ == "__main__":

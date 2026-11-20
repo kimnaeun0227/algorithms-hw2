@@ -30,6 +30,7 @@ class ServerTests(unittest.TestCase):
         status, _, body = self.request("GET", "/")
         self.assertEqual(status, 200)
         self.assertIn('action="/shorten"', body)
+        self.assertIn("/table?table=linear", body)
 
         status, _, body = self.request(
             "POST",
@@ -77,6 +78,26 @@ class ServerTests(unittest.TestCase):
         self.assertIn("연결 리스트", body)
         self.assertIn("비교 1회", body)
         self.assertIn("mod 1024", body)
+
+    def test_linear_table_shows_visited_slots_and_hash_steps(self):
+        self.request(
+            "POST",
+            "/shorten",
+            body=urlencode({"url": "https://example.com/a"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        status, _, body = self.request("GET", "/table?table=linear")
+
+        self.assertEqual(status, 200)
+        self.assertIn("선형 탐지", body)
+        self.assertIn("초기 슬롯은 Horner", body)
+        self.assertIn("방문 슬롯", body)
+        self.assertIn("시작 슬롯", body)
+        self.assertIn("mod 1024", body)
+
+    def test_unknown_table_selection_is_rejected(self):
+        status, _, _ = self.request("GET", "/table?table=unknown")
+        self.assertEqual(status, 400)
 
 
 if __name__ == "__main__":
