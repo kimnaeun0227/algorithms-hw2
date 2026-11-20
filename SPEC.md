@@ -15,17 +15,20 @@
 
 ## 3. 해시 테이블
 
-- 문자열 키와 임의의 값을 저장하는 `HashTable(capacity=8)`을 만든다.
-- 충돌 처리는 분리 연결법이다. 키의 각 문자를 왼쪽부터 처리하는 Horner 해시
-  `h = (31 * h + ord(character)) % capacity`를 사용한다.
+- 문자열 키와 임의의 값을 저장하는 `HashTable(capacity=8)`을 만든다. 용량 길이의
+  리스트를 버킷 배열로 쓰고, 각 버킷은 `(key, value)` 쌍을 담은 리스트다.
+- 충돌 처리는 개별 체이닝(separate chaining)이다. 각 문자열 키는 왼쪽부터 한
+  문자씩 Horner 식 `h = (31 * h + ord(character)) % capacity`에 넣어 버킷
+  인덱스를 구한다. 초기값은 `h = 0`이며 빈 문자열의 인덱스는 0이다.
 - `set(key, value)`는 새 키를 추가하고, 같은 키가 있으면 값을 바꾼다.
 - `get(key, default=None)`은 값을 돌려준다. 키가 없고 기본값을 주지 않았으면
   `KeyError`를 낸다. `delete(key)`는 삭제 성공 여부를 bool로 돌려준다.
 - `search(key)`는 `(found, value, probes)`를 돌려준다. `probes`는 실제 비교한
   항목 수이며 비어 있는 체인을 찾을 때는 0이다. `slots()`와 `hash_steps(key)`는
   화면·실험에 사용할 진단 정보를 돌려준다.
-- 용량은 양의 정수이며 자동으로 늘리지 않는다. 내장 `hash()`, `dict`, `set`으로
-  저장소나 해시를 구현하지 않는다.
+- 용량은 양의 정수이며 자동으로 늘리지 않는다. `src/`에서는 내장 `dict`, `set`,
+  `hash()`를 사용하지 않는다. 저장·조회·충돌 처리는 직접 구현한 리스트 기반
+  해시 테이블과 명시한 Horner 계산으로 수행한다.
 - `LinearProbingHashTable`도 같은 인터페이스를 제공한다. 선형 탐지는 삭제 표식을
   두어 탐색 체인을 보존하고, 가득 찬 테이블에 새 키를 넣으면 `OverflowError`를
   낸다. 선형 탐지의 비교 수는 성공한 슬롯과 탐색을 끝내는 빈 슬롯을 포함해
